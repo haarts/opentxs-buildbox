@@ -1,0 +1,56 @@
+---
+- hosts: buildbox
+  user: vagrant
+  sudo: yes
+  tasks:
+
+    # Stuff for making the debs
+    - name: install Git
+      apt: name=git state=installed
+    - name: install Protobuf
+      apt: name=libprotobuf8 state=installed
+    - apt: name=protobuf-compiler state=installed
+    - apt: name=libprotobuf-dev state=installed
+    - name: install ZMQ
+      apt: name=libzmq3-dev state=installed
+    - name: install OpenSSL
+      apt: name=libssl-dev state=installed
+    - apt: name=libssl1.0.0 state=installed
+    - name: install cmake
+      apt: name=cmake state=installed
+    - name: install g++
+      apt: name=g++ state=installed
+    - name: fix the locale already
+      copy: src=locale dest=/etc/default/locale
+
+    # Stuff for the Python bindings
+    - name: install Python3
+      apt: name=python3.4 state=installed
+    - name: install Python3 libraries
+      apt: name=python3.4-dev state=installed
+    - name: build Swig 3
+      unarchive: src=swig-3.0.2.tar.gz dest=/tmp
+    - apt: name=libpcre3 state=installed
+    - apt: name=libpcre3-dev state=installed
+    - shell: test -f /usr/bin/swig
+      register: swig_present
+    - shell: 'cd /tmp/swig-3.0.2 ;{{ item }}'
+      with_items:
+        - ./configure --prefix=/usr
+        - make
+        - make install
+      when: swig_present.rc != 0
+
+    # Getting the sources
+    - name: clone opentxs
+      git: repo=https://github.com/Open-Transactions/opentxs.git dest=/home/vagrant/work/opentxs
+      sudo: no
+    - name: create build dir opentxs
+      file: path=/home/vagrant/work/opentxs/build state=directory
+      sudo: no
+    - name: clone opentxs-server
+      git: repo=https://github.com/Open-Transactions/opentxs-server.git dest=/home/vagrant/work/opentxs-server
+      sudo: no
+    - name: create build dir opentxs-server
+      file: path=/home/vagrant/work/opentxs-server/build state=directory
+      sudo: no
